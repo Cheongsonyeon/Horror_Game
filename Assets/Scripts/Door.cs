@@ -1,13 +1,11 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-public enum DoorNeed { No, Item, Cant };
-public enum DoorType {A, B, C}; // 이름 미정이라서 이렇게 해둠.
+
 public class Door : MonoBehaviour
 {
-    public bool isOpen = false;
+    public bool IsOpen = false;
     [SerializeField]
-    private bool isRotatingDoor = true;
+    private bool IsRotatingDoor = true;
     [SerializeField]
     private float Speed = 1f;
     [Header("Rotation Configs")]
@@ -15,172 +13,142 @@ public class Door : MonoBehaviour
     private float RotationAmount = 90f;
     [SerializeField]
     private float ForwardDirection = 0;
+    [Header("Sliding Configs")]
+    [SerializeField]
+    private Vector3 SlideDirection = Vector3.back;
+    [SerializeField]
+    private float SlideAmount = 1.9f;
 
     private Vector3 StartRotation;
+    private Vector3 StartPosition;
     private Vector3 Forward;
 
     private Coroutine AnimationCoroutine;
 
-    [Tooltip("문의 종류")]
-    public DoorType DoorType;
-    [Tooltip("문의 종류가 B일때만 사용")]
-    public GameObject ToWhere;
-
     private void Awake()
     {
         StartRotation = transform.rotation.eulerAngles;
-        //Since "Forward" actually is pointing into the door frame, choose a direction to think about as "forward"
+        // Since "Forward" actually is pointing into the door frame, choose a direction to think about as "forward" 
         Forward = transform.right;
+        StartPosition = transform.position;
     }
 
-    public void Open(Vector3 UserPosition)
+    public void Open(Vector3 UserForward)
     {
-        if (AnimationCoroutine != null)
-        {
-            StopCoroutine(AnimationCoroutine);
-        }
-        if (isRotatingDoor)
-        {
-            float dot = Vector3.Dot(Forward, (UserPosition - transform.position).normalized);
-            Debug.Log($"Dot :  {dot.ToString("N3")})");
-            AnimationCoroutine = StartCoroutine(DoRotationOpen(dot));
-        }
-    }
-
-    private IEnumerator DoRotationOpen(float ForwardAmount)
-    {
-        Quaternion startRotation = transform.rotation;
-        Quaternion endRoation;
-
-        if (ForwardAmount >= ForwardDirection)
-        {
-            endRoation = Quaternion.Euler(new Vector3(0, startRotation.y - RotationAmount, 0));
-
-        }
-        else
-        {
-            endRoation = Quaternion.Euler(new Vector3(0, StartRotation.y + RotationAmount, 0));
-        }
-
-        isOpen = true;
-        float time = 0;
-        while (time < 1)
-        {
-            transform.rotation = Quaternion.Slerp(startRotation, endRoation, time);
-            yield return null;
-            time += Time.deltaTime * Speed;
-        }
-    }
-    public void Close()
-    {
-        if (isOpen)
+        if (!IsOpen)
         {
             if (AnimationCoroutine != null)
             {
                 StopCoroutine(AnimationCoroutine);
-
             }
 
-            if (isRotatingDoor)
+            if (IsRotatingDoor)
+            {
+                AnimationCoroutine = StartCoroutine(DoRotationOpen(UserForward));
+            }
+            else
+            {
+                AnimationCoroutine = StartCoroutine(DoSlidingOpen());
+            }
+        }
+    }
+
+    private IEnumerator DoRotationOpen(Vector3 UserForward)
+    {
+        Quaternion startRotation = transform.rotation;
+        Quaternion endRotation;
+        //대충 구상하는거
+        //만약 현재 각도가 90도면 플레이어 forward의 x부분 소매치기하고
+        //만약 0도면 플레이어의 forward의 z부분 소매치기하고
+        //ㅇㅋ?
+        //ㅇㅋ
+        print(UserForward.x >= 0f ? 1f : -1f);
+        if((startRotation.y >= -7 && startRotation.y <= 7) || (startRotation.y >= 80 && startRotation.y <= 100) || (startRotation.y >= -80 && startRotation.y <= -100))
+        {
+            endRotation = Quaternion.Euler(new Vector3(0, StartRotation.y + RotationAmount * (UserForward.z<=0f ? 1f : -1f), 0));
+        }
+        else
+        {
+            endRotation = Quaternion.Euler(new Vector3(0, StartRotation.y + RotationAmount * (UserForward.x <= 0f ? 1f : -1f), 0));
+
+        }
+
+
+        IsOpen = true;
+
+        float time = 0;
+        while (time < 1)
+        {
+            transform.rotation = Quaternion.Slerp(startRotation, endRotation, time);
+            yield return null;
+            time += Time.deltaTime * Speed;
+        }
+    }
+
+    private IEnumerator DoSlidingOpen()
+    {
+        Vector3 endPosition = StartPosition + SlideAmount * SlideDirection;
+        Vector3 startPosition = transform.position;
+
+        float time = 0;
+        IsOpen = true;
+        while (time < 1)
+        {
+            transform.position = Vector3.Lerp(startPosition, endPosition, time);
+            yield return null;
+            time += Time.deltaTime * Speed;
+        }
+    }
+
+    public void Close()
+    {
+        if (IsOpen)
+        {
+            if (AnimationCoroutine != null)
+            {
+                StopCoroutine(AnimationCoroutine);
+            }
+
+            if (IsRotatingDoor)
             {
                 AnimationCoroutine = StartCoroutine(DoRotationClose());
+            }
+            else
+            {
+                AnimationCoroutine = StartCoroutine(DoSlidingClose());
             }
         }
     }
 
     private IEnumerator DoRotationClose()
     {
-        Quaternion startRoation = transform.rotation;
-        Quaternion endRoation = Quaternion.Euler(StartRotation);
-        isOpen = false;
+        Quaternion startRotation = transform.rotation;
+        Quaternion endRotation = Quaternion.Euler(StartRotation);
+
+        IsOpen = false;
 
         float time = 0;
         while (time < 1)
         {
-            transform.rotation = Quaternion.Slerp(startRoation, endRoation, time);
+            transform.rotation = Quaternion.Slerp(startRotation, endRotation, time);
             yield return null;
             time += Time.deltaTime * Speed;
         }
     }
 
-
-
-
-    [Tooltip("문의 조건")]
-    public DoorNeed DoorNeed;
-
-    [Tooltip("DoorNeed이 Item일경우에만 사용함")]
-    public string NeedItem;
-    Vector3 rayL;
-    Vector3 Point0;
-    void Start()
+    private IEnumerator DoSlidingClose()
     {
-        if (DoorType == DoorType.A)
-        {
-            Point0.x = transform.localRotation.x;
-            Point0.y = transform.localRotation.y;
-            Point0.z = transform.localRotation.z;
-        }else if (DoorType == DoorType.B)
-        {
-            Point0.x = transform.localPosition.x;
-            Point0.y = transform.localPosition.y;
-            Point0.z = transform.localPosition.z;
-        }
-        else
-        {
+        Vector3 endPosition = StartPosition;
+        Vector3 startPosition = transform.position;
+        float time = 0;
 
+        IsOpen = false;
+
+        while (time < 1)
+        {
+            transform.position = Vector3.Lerp(startPosition, endPosition, time);
+            yield return null;
+            time += Time.deltaTime * Speed;
         }
     }
-    public void ChangeDoorState(Vector3 rayR)
-    {
-        rayL = rayR;
-      //  open = !open;
-    }
-
-    // Update is called once per frame
-    //void Update()
-   // {
-    //    if (DoorType == DoorType.A)
-     //   {
-        //    if (open)
-        //    {
-
-//             Quaternion targetRotation = Quaternion.Euler(0, Point0.z + (rayL.z / Mathf.Abs(rayL.z)) * -90f, 0);
-//    
- //               transform.localRotation = Quaternion.Slerp(transform.localRotation, targetRotation, 2 * Time.deltaTime);
-//
-
-       //     }
-       //     else
-       //     {
-  //              Quaternion targetRotation2= Quaternion.Euler(0,0,0);
-    //            targetRotation2.x = Point0.x;
-      //          targetRotation2.y = Point0.y;
-        //        targetRotation2.z = Point0.z;
-
-          //      transform.localRotation = Quaternion.Slerp(transform.localRotation, targetRotation2, 2 * Time.deltaTime);
-       //     }
-      //  }
-  //      else if (DoorType == DoorType.B)
-    //    {
-        //    if (open)
-        //    {
-
-      ///          Vector3 targetP = ToWhere.gameObject.transform.localPosition;
-      //
-        //        transform.localPosition = Vector3.MoveTowards(transform.localPosition, targetP, 2 * Time.deltaTime);
-        //
-        //
-       //     }
-       //     else
-        //    {
-          ////      Vector3 targetP2 = Point0;
-              ////  transform.localPosition = Vector3.MoveTowards(transform.localPosition, targetP2, 2 * Time.deltaTime);
-        //    }
-     ///   }
-     ///   else if(DoorType == DoorType.C)
-       /// {
-     //
-       /// }
-   // }
 }

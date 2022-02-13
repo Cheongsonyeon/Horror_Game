@@ -1,35 +1,29 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class DoorTrigger : MonoBehaviour
 {
-   // [SerializeField]
-   // private Door Door;
+    [SerializeField]
+    private Door Door;
 
-    //private void OnTriggerEnter(Collider other)
-   // {
-       // if(other.TryGetComponent<CharacterController>(out CharacterController controller))
-       // {
-       //    if (!Door.isOpen)
-        //    {
-        //        DoorOpen()
-      //      }
-    //        else
-  //          {
-//
-      //      }
-     //   }
-    //}
-    // Start is called before the first frame update
-    void Start()
+    private void OnTriggerEnter(Collider other)
     {
-        
+        if (other.TryGetComponent<CharacterController>(out CharacterController controller))
+        {
+            if (!Door.IsOpen)
+            {
+                Door.Open(other.transform.position);
+            }
+        }
     }
 
-    // Update is called once per frame
-    void Update()
+    private void OnTriggerExit(Collider other)
     {
-        
+        if (other.TryGetComponent<CharacterController>(out CharacterController controller))
+        {
+            if (Door.IsOpen)
+            {
+                Door.Close();
+            }
+        }
     }
 }

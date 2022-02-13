@@ -1,7 +1,6 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
 using TMPro;
+using UnityEngine;
+
 public class PlayerActions : MonoBehaviour
 {
     [SerializeField]
@@ -15,22 +14,18 @@ public class PlayerActions : MonoBehaviour
 
     public void OnUse()
     {
-        Debug.DrawRay(Camera.position, Camera.forward * MaxUseDistance, Color.blue, 0.1f);
-        if (Physics.Raycast(Camera.position, Camera.forward, out RaycastHit hit, MaxUseDistance))
+        if (Physics.Raycast(Camera.position, Camera.forward, out RaycastHit hit, MaxUseDistance, UseLayers))
         {
-            if (hit.collider.gameObject.layer==LayerMask.NameToLayer("Door"))
+            if (hit.collider.TryGetComponent<Door>(out Door door))
             {
-                hit.collider.TryGetComponent<Door>(out Door door);
-
-                if (door.isOpen)
+                if (door.IsOpen)
                 {
                     door.Close();
                 }
                 else
                 {
-
-                    ///
-                    door.Open(Camera.position);
+                    door.Open(transform.forward);
+                    print("꾸부리는 " + transform.forward + "이다.");
                 }
             }
         }
@@ -38,31 +33,36 @@ public class PlayerActions : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetButtonDown("F"))
-        {
-            OnUse();
-        }
-
         if (Physics.Raycast(Camera.position, Camera.forward, out RaycastHit hit, MaxUseDistance, UseLayers)
             && hit.collider.TryGetComponent<Door>(out Door door))
         {
-            if (door.isOpen)
+            if (door.IsOpen)
             {
-                UseText.SetText("Close \"F\"");
+                UseText.SetText("Close \"E\"");
             }
             else
             {
-                UseText.SetText("Open \"F\"");
+                UseText.SetText("Open \"E\"");
             }
             UseText.gameObject.SetActive(true);
             UseText.transform.position = hit.point - (hit.point - Camera.position).normalized * 0.01f;
             UseText.transform.rotation = Quaternion.LookRotation((hit.point - Camera.position).normalized);
-
-
         }
         else
         {
             UseText.gameObject.SetActive(false);
         }
+
+        if (Input.GetKeyDown(KeyCode.Q))
+        {
+            print("Motehr");
+        }
+
+        if (Input.GetKeyDown(KeyCode.F))
+        {
+            print("OKO");
+            OnUse();
+
+        }
     }
-}
+}   
